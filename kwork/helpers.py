@@ -23,6 +23,21 @@ def generate_random_session_key():
     return session_key
 
 
+def random_sha256_hash(text):
+    hash_object = hashlib.sha256(text.encode())
+    hex_dig = hash_object.hexdigest()
+    return hex_dig
+
+
+def generate_random_payload():
+    while True:
+        payload = random_sha256_hash(generate_random_password())
+        if not models.Payload.objects.filter(payload=payload).exists():
+            break
+
+    return payload
+
+
 def check_proof(data):
     received_state_init = data['proof']['state_init']
     received_address = data['address']

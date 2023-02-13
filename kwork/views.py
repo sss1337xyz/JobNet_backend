@@ -7,7 +7,7 @@ from django.http import HttpResponse, JsonResponse
 from django.views import View
 
 from .helpers import check_proof
-from .models import User, ClientSession
+from .models import User, ClientSession, Payload
 
 import hashlib
 
@@ -20,13 +20,6 @@ load_dotenv()
 TON_API_KEY = os.getenv("TON_API_KEY")
 
 
-def random_sha256_hash():
-    input_data = 'random_input_data'
-    hash_object = hashlib.sha256(input_data.encode())
-    hex_dig = hash_object.hexdigest()
-    return hex_dig
-
-
 class UserPageView(View):
     def get(self, request, *args, **kwargs):
         # Perform io-blocking view logic using await, sleep for example.
@@ -37,10 +30,8 @@ class UserPageView(View):
 
 class VerifView(View):
     def post(self, request, *args, **kwargs):
-        # Perform io-blocking view logic using await, sleep for example.
-        # await asyncio.sleep(1)
-        print(request)
-        return JsonResponse({"payload": random_sha256_hash()})
+        payload = Payload.objects.create()
+        return JsonResponse({"payload": payload.payload})
 
 
 class CheckProfView(View):
@@ -48,6 +39,12 @@ class CheckProfView(View):
         # Perform io-blocking view logic using await, sleep for example.
         # await asyncio.sleep(1)
         data = json.loads(request.body.decode("utf-8"))
+        try:
+            payload = Payload.objects.get(payload=data['proof']['payload'])
+            payload.check_payload()
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
         check_proof(data)
 
         profile, created = User.objects.get_or_create(wallet=data['address'])

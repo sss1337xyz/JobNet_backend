@@ -1,6 +1,8 @@
+from datetime import timedelta
+
 from django.db import models
 
-from kwork.helpers import generate_random_session_key
+from kwork.helpers import generate_random_session_key, generate_random_payload
 from django.utils import timezone as django_datetime
 from django.contrib.auth.models import AbstractBaseUser
 
@@ -42,3 +44,22 @@ class ClientSession(models.Model):
 
     def get_session_key(self):
         return self.session_key
+
+
+class Payload(models.Model):
+    payload = models.CharField(verbose_name='Полезная нагрузка', max_length=128, default=generate_random_payload)
+    data_expired = models.DateTimeField(verbose_name='Время окончания', default=django_datetime.now())
+
+    def save(self, *args, **kwargs):
+        if self.data_expired is None:
+            self.data_expired = django_datetime.now()
+        self.data_expired += timedelta(minutes=5)
+        super().save(*args, **kwargs)
+
+    def check_payload(self):
+        now = django_datetime.now()
+        print(now)
+        print(self.data_expired)
+        if self.data_expired <= now:
+            raise Exception("Payload expired")
+        return True
