@@ -7,7 +7,7 @@ from django.contrib.auth.models import AbstractBaseUser
 
 class User(models.Model):
     wallet = models.CharField(max_length=256)
-    profession = models.CharField(max_length=60)
+    profession = models.CharField(max_length=60, null=True)
 
     def __str__(self):
         return self.wallet
