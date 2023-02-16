@@ -18,10 +18,14 @@ from django.urls import path
 
 from kwork import views
 
+from django.conf import settings
+from django.conf.urls.static import static
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/user', views.UserPageView.as_view()),
     path('ton-proof/generatePayload', views.VerifView.as_view()),
     path('ton-proof/checkProof', views.CheckProfView.as_view()),
-    path('ton-proof/getAccount', views.TestMethod.as_view())
-]
+    path('api/createServices', views.CreateServices.as_view()),
+    path('api/services', views.ServicesList.as_view()),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

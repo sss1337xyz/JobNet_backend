@@ -5,6 +5,8 @@ from django.db import models
 from kwork.helpers import generate_random_session_key, generate_random_payload
 from django.utils import timezone as django_datetime
 from django.contrib.auth.models import AbstractBaseUser
+from django.utils.text import slugify
+from unidecode import unidecode
 
 
 class User(models.Model):
@@ -48,11 +50,11 @@ class ClientSession(models.Model):
 
 class Payload(models.Model):
     payload = models.CharField(verbose_name='Полезная нагрузка', max_length=128, default=generate_random_payload)
-    data_expired = models.DateTimeField(verbose_name='Время окончания', default=django_datetime.now())
+    data_expired = models.DateTimeField(verbose_name='Время окончания', default=django_datetime.now)
 
     def save(self, *args, **kwargs):
         if self.data_expired is None:
-            self.data_expired = django_datetime.now()
+            self.data_expired = django_datetime.now
         self.data_expired += timedelta(minutes=5)
         super().save(*args, **kwargs)
 
@@ -63,3 +65,27 @@ class Payload(models.Model):
         if self.data_expired <= now:
             raise Exception("Payload expired")
         return True
+
+
+class Services(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(verbose_name='Заглавие услуги', max_length=64)
+    image = models.ImageField(upload_to='service_images/')
+    description = models.TextField(verbose_name='Описание услуги')
+    price = models.IntegerField(verbose_name='Цена услуги')
+    requirements = models.TextField(verbose_name='Требования услуги')
+    completed = models.BooleanField(default=False)
+    slug = models.SlugField(max_length=255, unique=True, db_index=True, verbose_name="URL")
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(unidecode(self.title))
+
+        if Services.objects.filter(slug=self.slug).exists():
+            # Генерируем новый slug, пока не найдем уникальный
+            count = 1
+            while Services.objects.filter(slug=self.slug).exists():
+                self.slug = f"{slugify(unidecode(self.title))}-{count}"
+                count += 1
+
+        super().save(*args, **kwargs)
