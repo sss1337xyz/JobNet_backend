@@ -45,11 +45,10 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-    #'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'kwork.middleware.AuthMiddleware'
 ]
 
 ROOT_URLCONF = 'kwork.urls'
@@ -127,5 +126,5 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
 ]
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'data/') # 'data' is my media folder
+MEDIA_ROOT = os.path.join(BASE_DIR, 'data/')  # 'data' is my media folder
 MEDIA_URL = '/media/'

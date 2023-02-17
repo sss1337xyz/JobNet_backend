@@ -7,7 +7,7 @@ from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django.views import View
 
 from .forms import ServicesForm
-from .helpers import check_proof
+from .helpers import TonProof
 from .models import User, ClientSession, Payload, Services
 
 import hashlib
@@ -16,6 +16,7 @@ from tonapi import Tonapi
 import os
 from dotenv import load_dotenv
 
+from .modules.mixins import AuthMixin
 from .serializers import ServicesSerializer
 
 from rest_framework import generics
@@ -47,10 +48,9 @@ class CheckProfView(View):
         try:
             payload = Payload.objects.get(payload=data['proof']['payload'])
             payload.check_payload()
+            TonProof.check_proof(data)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
-
-        check_proof(data)
 
         profile, created = User.objects.get_or_create(wallet=data['address'])
 
@@ -68,9 +68,7 @@ class CheckProfView(View):
         })
 
 
-# if request.content_type != 'application/json':
-#    return HttpResponseBadRequest('Invalid content type')
-class CreateServices(View):
+class CreateServices(AuthMixin, View):
     def post(self, request, *args, **kwargs):
         post_data = request.POST.copy()
         session = ClientSession.objects.get(session_key=request.GET.get('session_key'))

@@ -29,38 +29,40 @@ def random_sha256_hash(text):
     return hex_dig
 
 
-def generate_random_payload():
-    while True:
-        payload = random_sha256_hash(generate_random_password())
-        if not models.Payload.objects.filter(payload=payload).exists():
-            break
+class TonProof:
+    @staticmethod
+    def generate_random_payload():
+        while True:
+            payload = random_sha256_hash(generate_random_password())
+            if not models.Payload.objects.filter(payload=payload).exists():
+                break
 
-    return payload
+        return payload
 
+    @classmethod
+    def check_proof(cls, data):
+        received_state_init = data['proof']['state_init']
+        received_address = data['address']
+        adr = received_address.split(':')
+        state_init = boc.Cell.one_from_boc(base64.b64decode(received_state_init))
 
-def check_proof(data):
-    received_state_init = data['proof']['state_init']
-    received_address = data['address']
-    adr = received_address.split(':')
-    state_init = boc.Cell.one_from_boc(base64.b64decode(received_state_init))
+        address_hash_part = base64.b16encode(state_init.bytes_hash()).decode('ascii').lower()
+        assert received_address.endswith(address_hash_part)
 
-    address_hash_part = base64.b16encode(state_init.bytes_hash()).decode('ascii').lower()
-    assert received_address.endswith(address_hash_part)
+        public_key = state_init.refs[1].bits.array[8:][:32]
 
-    public_key = state_init.refs[1].bits.array[8:][:32]
+        verify_key = nacl.signing.VerifyKey(bytes(public_key))
 
-    verify_key = nacl.signing.VerifyKey(bytes(public_key))
+        received_timestamp = data['proof']['timestamp']
+        signature = data['proof']['signature']
 
-    received_timestamp = data['proof']['timestamp']
-    signature = data['proof']['signature']
+        message = (b'ton-proof-item-v2/'
+                   + (0).to_bytes(4, 'big') + bytearray.fromhex(adr[1])
+                   + (data['proof']['domain']['lengthBytes']).to_bytes(4, 'little') + data['proof']['domain'][
+                       'value'].encode()
+                   + received_timestamp.to_bytes(8, 'little')
+                   + data['proof']['payload'].encode())
 
-    message = (b'ton-proof-item-v2/'
-               + (0).to_bytes(4, 'big') + bytearray.fromhex(adr[1])
-               + (data['proof']['domain']['lengthBytes']).to_bytes(4, 'little') + data['proof']['domain'][
-                   'value'].encode()
-               + received_timestamp.to_bytes(8, 'little')
-               + data['proof']['payload'].encode())
+        signed = b'\xFF\xFF' + b'ton-connect' + hashlib.sha256(message).digest()
 
-    signed = b'\xFF\xFF' + b'ton-connect' + hashlib.sha256(message).digest()
-
-    result = verify_key.verify(hashlib.sha256(signed).digest(), base64.b64decode(signature))
+        result = verify_key.verify(hashlib.sha256(signed).digest(), base64.b64decode(signature))

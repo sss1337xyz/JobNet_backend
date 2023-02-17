@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.db import models
 
-from kwork.helpers import generate_random_session_key, generate_random_payload
+from kwork.helpers import generate_random_session_key, TonProof
 from django.utils import timezone as django_datetime
 from django.contrib.auth.models import AbstractBaseUser
 from django.utils.text import slugify
@@ -49,7 +49,7 @@ class ClientSession(models.Model):
 
 
 class Payload(models.Model):
-    payload = models.CharField(verbose_name='Полезная нагрузка', max_length=128, default=generate_random_payload)
+    payload = models.CharField(verbose_name='Полезная нагрузка', max_length=128, default=TonProof.generate_random_payload)
     data_expired = models.DateTimeField(verbose_name='Время окончания', default=django_datetime.now)
 
     def save(self, *args, **kwargs):
