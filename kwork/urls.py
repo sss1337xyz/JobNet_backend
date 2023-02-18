@@ -24,7 +24,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/user', views.UserPageView.as_view()),
-    path('ton-proof/generatePayload', views.VerifView.as_view()),
+    path('ton-proof/generatePayload', views.PayloadView.as_view()),
     path('ton-proof/checkProof', views.CheckProfView.as_view()),
     path('api/createServices', views.CreateServices.as_view()),
     path('api/services', views.ServicesList.as_view()),

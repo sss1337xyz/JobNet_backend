@@ -1,16 +1,13 @@
-import asyncio
 import json
-import random
-import string
+import logging
+import time
 
-from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
+from django.http import HttpResponse, JsonResponse
 from django.views import View
 
 from .forms import ServicesForm
 from .helpers import TonProof
-from .models import User, ClientSession, Payload, Services
-
-import hashlib
+from .models import User, ClientSession, Services
 
 from tonapi import Tonapi
 import os
@@ -20,6 +17,7 @@ from .modules.mixins import AuthMixin
 from .serializers import ServicesSerializer
 
 from rest_framework import generics
+import redis
 
 load_dotenv()
 
@@ -28,26 +26,48 @@ TON_API_KEY = os.getenv("TON_API_KEY")
 
 class UserPageView(View):
     def get(self, request, *args, **kwargs):
-        # Perform io-blocking view logic using await, sleep for example.
-        # await asyncio.sleep(1)
         print(User.objects.all())
         return HttpResponse(User.objects.all())
 
 
-class VerifView(View):
+class PayloadView(View):
     def post(self, request, *args, **kwargs):
-        payload = Payload.objects.create()
-        return JsonResponse({"payload": payload.payload})
+        # TODO: переделать под Redis с hget hset где должен возвращаться json payload_key: 1, payload_action
+        with redis.Redis() as r:
+            key = r.incr('payloads_counter')
+            payload_key = f'payload_key{key}'
+            random_payload = TonProof.generate_random_payload()
+            r.set(payload_key, str(random_payload), ex=300)
+            response_payload = json.dumps({
+                "key": payload_key,
+                "payload": random_payload
+            })
+
+        return JsonResponse({"payload": response_payload})
+
+    def dispatch(self, *args, **kwargs):
+        start_time = time.time()
+        response = super().dispatch(*args, **kwargs)
+        total = (time.time() - start_time) * 1000
+        print(total)
+        # or
+        # response['X-total-time'] = total
+        return response
 
 
 class CheckProfView(View):
     def post(self, request, *args, **kwargs):
-        # Perform io-blocking view logic using await, sleep for example.
-        # await asyncio.sleep(1)
         data = json.loads(request.body.decode("utf-8"))
         try:
-            payload = Payload.objects.get(payload=data['proof']['payload'])
-            payload.check_payload()
+            payload = json.loads(data['proof']['payload'])
+            with redis.Redis() as r:
+                r_payload = r.get(payload['key'])
+
+                if r_payload is None:
+                    raise Exception("Payload expired")
+                if r_payload.decode("utf-8") != payload['payload']:
+                    raise Exception("Payload incorrect")
+
             TonProof.check_proof(data)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)

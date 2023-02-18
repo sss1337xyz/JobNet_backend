@@ -48,25 +48,6 @@ class ClientSession(models.Model):
         return self.session_key
 
 
-class Payload(models.Model):
-    payload = models.CharField(verbose_name='Полезная нагрузка', max_length=128, default=TonProof.generate_random_payload)
-    data_expired = models.DateTimeField(verbose_name='Время окончания', default=django_datetime.now)
-
-    def save(self, *args, **kwargs):
-        if self.data_expired is None:
-            self.data_expired = django_datetime.now
-        self.data_expired += timedelta(minutes=5)
-        super().save(*args, **kwargs)
-
-    def check_payload(self):
-        now = django_datetime.now()
-        print(now)
-        print(self.data_expired)
-        if self.data_expired <= now:
-            raise Exception("Payload expired")
-        return True
-
-
 class Services(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(verbose_name='Заглавие услуги', max_length=64)
