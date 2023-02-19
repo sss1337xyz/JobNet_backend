@@ -28,4 +28,6 @@ urlpatterns = [
     path('ton-proof/checkProof', views.CheckProfView.as_view()),
     path('api/createServices', views.CreateServices.as_view()),
     path('api/services', views.ServicesList.as_view()),
+    path('api/createDeals', views.DealsApiCreate.as_view()),
+    #path('api/getAllDeals', views.DealsList.get_all_deals_view()),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

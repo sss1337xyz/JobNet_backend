@@ -70,3 +70,17 @@ class Services(models.Model):
                 count += 1
 
         super().save(*args, **kwargs)
+
+
+class Deals(models.Model):
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='seller_id')
+    buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='buyer_id')
+
+    description = models.TextField(max_length=2000)
+    price = models.IntegerField()
+    status = models.IntegerField()
+
+    days_on_deal = models.IntegerField(verbose_name='Сколько будет длится сделка')
+    date_start_deal = models.DateTimeField(verbose_name='Дата принятия сделки', null=True, default=None)
+    date_create = models.DateTimeField(verbose_name='Дата, в которое создана сделка', default=django_datetime.now)
+    date_finish = models.DateTimeField(verbose_name='Дата, в которое окончена сделка', null=True, default=None)

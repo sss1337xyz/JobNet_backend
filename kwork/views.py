@@ -7,16 +7,19 @@ from django.views import View
 
 from .forms import ServicesForm
 from .helpers import TonProof
-from .models import User, ClientSession, Services
+from .models import User, ClientSession, Services, Deals
 
 from tonapi import Tonapi
 import os
 from dotenv import load_dotenv
 
 from .modules.mixins import AuthMixin
-from .serializers import ServicesSerializer
+from .serializers import ServicesSerializer, DealsSerializer
 
 from rest_framework import generics
+from rest_framework.generics import get_object_or_404
+from rest_framework.response import Response
+from rest_framework import status
 import redis
 
 load_dotenv()
@@ -36,7 +39,9 @@ class PayloadView(View):
         with redis.Redis() as r:
             key = r.incr('payloads_counter')
             payload_key = f'payload_key{key}'
+
             random_payload = TonProof.generate_random_payload()
+
             r.set(payload_key, str(random_payload), ex=300)
             response_payload = json.dumps({
                 "key": payload_key,
@@ -110,3 +115,20 @@ class CreateServices(AuthMixin, View):
 class ServicesList(generics.ListAPIView):
     queryset = Services.objects.all()
     serializer_class = ServicesSerializer
+
+
+class DealsApiCreate(AuthMixin, generics.CreateAPIView):
+    queryset = Deals.objects.all()
+    serializer_class = DealsSerializer
+
+
+class DealsList(AuthMixin, generics.ListAPIView):
+    queryset = Deals.objects.all()
+    serializer_class = DealsSerializer
+
+    @classmethod
+    def get_all_deals_view(cls, request):
+        session_key = request.GET.get("session_key")
+        response = cls.as_view()(request=request)
+
+        return JsonResponse(response.data)
